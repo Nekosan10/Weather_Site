@@ -1,2 +1,11 @@
 # Weather_Site
 GASを利用した天気予報サイト
+CSSを二種類入れているので重いかも
+
+Livedoor Weather Web ServiceのAPIを使用
+今日の最低気温が出ないのはAPI側の仕様。
+Spreadsheetに地点とIDを格納している。
+selectにonChangeを入れてあるので地方、都道府県から簡単に地点を出せる。
+スマホからも見れるようにしてある。
+Tweet機能、LINE共有機能も実装。
+メール送信機能は、メール本文の見た目がよろしくないので実装中断中。
