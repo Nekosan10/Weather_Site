@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+<base target='_top'>
+<link rel="stylesheet" href="https://unpkg.com/papercss@1.5.3/dist/paper.min.css">
+<?!= HtmlService.createHtmlOutputFromFile('css').getContent(); ?>
+<meta charset='utf-8'>
+
+<body>
+  <div class='paper container'>
+    <div class='notebook-border'>
+      <p>選択された地点の天気をLivedoor Weather Web Serviceが提供するAPIから取得して表示します。</p>
+
+      <select id='Area' onChange='areaSet(this)' class='select'>
+        <option value='' selected>①</option>
+        <option value='1'>北海道</option>
+        <option value='2'>東北</option>
+        <option value='3'>関東</option>
+        <option value='4'>信越・北陸</option>
+        <option value='5'>東海</option>
+        <option value='6'>近畿</option>
+        <option value='7'>中国</option>
+        <option value='8'>四国</option>
+        <option value='9'>九州・沖縄</option>
+      </select>
+
+      <select id='Point' class='select' onChange='areaSet(this)'>
+      <option value='' selected>②</option>
+      </select>
+
+      <select id='DoArea' class='select'>
+      <option value='' selected>③</option>
+      </select>
+
+      <input type='button' class='select' onClick='getWeather()' value='天気取得'>
+
+      <br><br>
+      <div id='weather' class='div'>
+        <p id='result_area' class='p'>①地方を選択してください</p>
+        <div id='today' class='div'>
+        </div>
+        <div id='tommorow' class='div'>
+        </div>
+        <div id='tommorows' class='div'>
+        </div>
+        <div id=data>
+        <p id='weather_announce' class='p'></p>
+        <a id='weather_link' class='a'></a>
+        </div>
+      </div>
+      <br />
+    </div>
+
+    <div class='twitter'>
+      <a href='//twitter.com/share' class='twitter-share-button' data-text='天気予報を取得してみたよ！' data-url='https://goo.gl/wF5Cg4' data-lang='ja<!-- 日本語の場合 -->'>Tweet</a>
+    </div>
+    <div class='line-it-button' data-lang='ja' data-type='share-a' data-url='https://goo.gl/BNcD4H' style='display: none;'></div>
+    <br>
+    <footer>
+      <a href='https://www.getpapercss.com/'>手書き風CSS</a>
+      <a href='http://backyard.in4design.jp/2017/01/css.html'>ノート罫線風CSS</a>
+      <a href='http://mi-neko-maple.hatenablog.com/archive'>作者のブログ</a>
+      <a href='https://twitter.com/mi_san_cat' font-color='#cccccc'>作者のTwitter</a>
+    </footer>
+  </div>
+  <script async='async' src='https://platform.twitter.com/widgets.js' charset='utf-8'></script>
+  <script src='https://d.line-scdn.net/r/web/social-plugin/js/thirdparty/loader.min.js' async='async' defer='defer'></script>
+  <script type='text/javascript'>
+    function areaSet(obj) {
+      var check;
+      if (obj.id == 'Area') {
+        check = 0;
+        var areaIndex = obj.selectedIndex;
+        google.script.run.withSuccessHandler(setArea).withUserObject(check).areaList(areaIndex);
+      } else if (obj.id == 'Point') {
+        check = 1;
+        var areaName = document.getElementById('Point').value;
+        google.script.run.withSuccessHandler(setArea).withUserObject(check).setPoint(areaName);
+      }
+    }
+
+    function setArea(area_list, check) {
+      var setsel;
+      var desc_str;
+      if (check == 0) {
+        setsel = document.getElementById('Point');
+        desc_str = '②都道府県を選択してください';
+      } else if (check == 1) {
+        setsel = document.getElementById('DoArea');
+        desc_str = '③観測地点を選択して、「天気取得」ボタンをクリックして下さい';
+      }
+      setsel.options.length = 0;
+      clearChildNodes(setsel);
+      for (var key in area_list) {
+        // option要素の宣言
+        var option = new Option(area_list[key], key);
+        // 作成したoption要素をselectに追加
+        setsel.appendChild(option);
+      }
+      document.getElementById('result_area').textContent = desc_str;
+    }
+
+    function getWeather() {
+      var strset = document.getElementById('result_area');
+      var val = document.getElementById('DoArea').value;
+      strset.textContent = '天気取得中';
+      google.script.run
+        .withSuccessHandler(setWeather)
+        .withFailureHandler(dontset)
+        .getJson(val);
+    }
+
+    function setWeather(strBox) {
+      var titlis = [
+        ['today_date', 'today_weather', 'today_high', 'today_low'],
+        ['tommorow_date', 'tommorow_weather', 'tommorow_high', 'tommorow_low'],
+        ['tommorows_date', 'tommorows_weather', 'tommorows_high', 'tommorows_low']
+      ];
+      var idlist = ['today', 'tommorow', 'tommorows'];
+
+      document.getElementById('result_area').innerHTML = strBox['location'];
+
+      for (var i = 0; i < 3; i++) {
+        var cls = document.getElementById(idlist[i]);
+        if (cls.hasChildNodes()) {
+          for (let i = cls.childNodes.length - 1; i >= 0; i--) {
+            cls.removeChild(cls.childNodes[i]);
+          }
+        }
+        var pTag = document.createElement('pre');
+        pTag.setAttribute('class', 'pre');
+        for (var j = 0; j < 4; j++) {
+          pTag.textContent += strBox[titlis[i][j]];
+          pTag.textContent += '\n';
+        }
+        cls.appendChild(pTag);
+      }
+      var txt = document.createElement('pre');
+      txt.setAttribute('id', 'text');
+      txt.setAttribute('class', 'pre');
+      txt.innerHTML = strBox['text'].split('】').join('】\n');
+      document.getElementById('tommorows').insertAdjacentElement('afterend', txt);
+      document.getElementById('weather_announce').innerHTML = strBox['announce'];
+      document.getElementById('weather_link').href = strBox['link'];
+      document.getElementById('weather_link').textContent = '天気予報取得元';
+    }
+
+    function dontset() {
+      document.getElementById('result_area').textContent = '天気取得失敗';
+    }
+
+    function clearChildNodes(elm) {
+      while (elm.hasChildNodes()) {
+        elm.removeChild(elm.lastChild);
+      }
+    }
+  </script>
+</body>
+
+</html>
